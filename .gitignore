@@ -1,0 +1,19 @@
+.gradle/
+**/build/
+local.properties
+*.keystore
+*.jks
+*.p12
+*.pem
+.env
+.env.*
+!.env.example
+.idea/
+*.iml
+.DS_Store
+captures/
+outputs/
+*.mp4
+*.jpg
+*.jpeg
+# The app icon is the only intentionally bundled image asset.

@@ -1,0 +1,79 @@
+package com.aabhix.camera;
+
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.*;
+import android.view.*;
+import android.widget.*;
+
+/** Native camera chrome: capture dominates; settings and styles are progressive panels. */
+public final class CameraScreen {
+    public interface Actions {void light();void timer();void ratio();void grid();void more();void lenses();void filters();void library();void photo();void video();void pro();void capture();void gallery();void flip();void zoom(float value);void mode(String name);void moreModes();void format();void configs();}
+    public final LinearLayout root,carousel,filterPanel;
+    public final FrameLayout viewfinder;
+    public final TextView status,styleName;
+    public final Button light,aspect,shutter,photo,video,pro;
+    public final TextView proReadout;
+    public final SeekBar intensity;
+    public final ImageView gallery;
+    public final Button zoomTwo,format;private final Button timerControl;
+    private final Activity activity;
+    private final java.util.List<View> quickControls=new java.util.ArrayList<>();
+    private final LinearLayout top,modes,capture,dock;private final HorizontalScrollView modeScroll;private boolean wideLayout;
+    public CameraScreen(Activity activity,Actions actions){
+        this.activity=activity;root=column();root.setBackgroundColor(Color.BLACK);
+        top=row();top.setGravity(Gravity.CENTER);light=icon("light","Camera light",v->actions.light());top.addView(light,weight(48));timerControl=icon("timer","Photo timer",v->actions.timer());top.addView(timerControl,weight(48));format=label("720p\n30",v->actions.format());format.setContentDescription("Video resolution and frame rate");format.setTextSize(10);format.setVisibility(View.GONE);top.addView(format,weight(48));
+        aspect=label("4:3",v->actions.ratio());aspect.setContentDescription("Photo or video aspect ratio");top.addView(aspect,weight(48));top.addView(icon("grid","Grid guides",v->actions.grid()),weight(48));top.addView(icon("settings","Camera settings and more",v->actions.more()),weight(48));root.addView(top);
+        viewfinder=new FrameLayout(activity);viewfinder.setBackgroundColor(Color.BLACK);root.addView(viewfinder,new LinearLayout.LayoutParams(-1,0,1));
+        status=caption("Starting camera…",12);status.setPadding(dp(12),dp(4),dp(12),dp(4));status.setShadowLayer(3,0,1,Color.BLACK);FrameLayout.LayoutParams st=new FrameLayout.LayoutParams(-2,-2,Gravity.TOP|Gravity.CENTER_HORIZONTAL);st.topMargin=dp(6);viewfinder.addView(status,st);
+        LinearLayout zoom=row();zoom.setGravity(Gravity.CENTER);Button one=label("1×",v->actions.zoom(1));one.setContentDescription("Digital zoom 1.0 times");zoom.addView(one,new LinearLayout.LayoutParams(dp(48),dp(40)));zoomTwo=label("2×",v->actions.zoom(2));zoomTwo.setContentDescription("Digital zoom 2.0 times");zoom.addView(zoomTwo,new LinearLayout.LayoutParams(dp(48),dp(40)));
+        FrameLayout.LayoutParams zp=new FrameLayout.LayoutParams(dp(112),dp(40),Gravity.BOTTOM|Gravity.CENTER_HORIZONTAL);zp.bottomMargin=dp(12);zoom.setBackground(round(0x99222222,24));viewfinder.addView(zoom,zp);
+        Button filter=icon("filters","Open filter carousel",v->actions.filters());FrameLayout.LayoutParams fp=new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.BOTTOM|Gravity.RIGHT);fp.rightMargin=dp(12);fp.bottomMargin=dp(8);viewfinder.addView(filter,fp);
+        Button lens=label("Lens",v->actions.lenses());lens.setContentDescription("Choose camera or lens");FrameLayout.LayoutParams lp=new FrameLayout.LayoutParams(dp(56),dp(48),Gravity.BOTTOM|Gravity.LEFT);lp.leftMargin=dp(8);lp.bottomMargin=dp(8);viewfinder.addView(lens,lp);quickControls.add(zoom);quickControls.add(filter);quickControls.add(lens);
+        filterPanel=column();filterPanel.setBackgroundColor(0xff101010);filterPanel.setVisibility(View.GONE);
+        LinearLayout selected=row();styleName=caption("Original",13);styleName.setPadding(dp(14),0,0,0);selected.addView(styleName,new LinearLayout.LayoutParams(0,dp(36),1));selected.addView(label("Configs",v->actions.configs()));selected.addView(label("Library",v->actions.library()));selected.addView(label("×",v->filterPanel.setVisibility(View.GONE)));filterPanel.addView(selected);
+        HorizontalScrollView scroll=new HorizontalScrollView(activity);scroll.setHorizontalScrollBarEnabled(false);carousel=row();carousel.setPadding(dp(8),0,dp(8),0);scroll.addView(carousel);filterPanel.addView(scroll,new LinearLayout.LayoutParams(-1,dp(80)));
+        LinearLayout amount=row();TextView amountLabel=caption("Intensity",11);amountLabel.setPadding(dp(16),0,dp(8),0);amount.addView(amountLabel);intensity=new SeekBar(activity);intensity.setMax(100);intensity.setContentDescription("Filter intensity");intensity.setProgressTintList(android.content.res.ColorStateList.valueOf(0xffffd54a));intensity.setThumbTintList(android.content.res.ColorStateList.valueOf(0xffffd54a));amount.addView(intensity,new LinearLayout.LayoutParams(0,dp(36),1));filterPanel.addView(amount);viewfinder.addView(filterPanel,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
+        proReadout=caption("ISO —   S —   EV 0   AF   WB Auto",11);proReadout.setGravity(Gravity.CENTER);proReadout.setBackground(round(0xcc171717,8));proReadout.setContentDescription("Pro sensor readout and controls");proReadout.setOnClickListener(v->actions.pro());proReadout.setVisibility(View.GONE);FrameLayout.LayoutParams rp=new FrameLayout.LayoutParams(-1,dp(44),Gravity.TOP);rp.topMargin=dp(36);rp.leftMargin=dp(8);rp.rightMargin=dp(8);viewfinder.addView(proReadout,rp);
+        modes=row();modes.setGravity(Gravity.CENTER);pro=label("Pro",v->actions.pro());photo=label("Photo",v->actions.photo());video=label("Video",v->actions.video());modes.addView(pro,new LinearLayout.LayoutParams(dp(76),dp(48)));modes.addView(photo,new LinearLayout.LayoutParams(dp(76),dp(48)));for(String name:new String[]{}){Button mode=label(name,v->actions.mode(name));mode.setContentDescription(name+" camera mode");modes.addView(mode,new LinearLayout.LayoutParams(dp(80),dp(48)));}modes.addView(video,new LinearLayout.LayoutParams(dp(76),dp(48)));modeScroll=new HorizontalScrollView(activity);modeScroll.setHorizontalScrollBarEnabled(false);modeScroll.setFillViewport(true);modeScroll.addView(modes);dock=column();LinearLayout modeBar=row();modeBar.addView(modeScroll,new LinearLayout.LayoutParams(0,dp(48),1));Button more=label("More",v->actions.moreModes());more.setContentDescription("More camera modes");modeBar.addView(more,new LinearLayout.LayoutParams(dp(64),dp(48)));dock.addView(modeBar,new LinearLayout.LayoutParams(-1,dp(48)));root.addView(dock);
+        capture=row();capture.setGravity(Gravity.CENTER);capture.setPadding(dp(18),dp(6),dp(18),dp(16));gallery=new ImageView(activity);gallery.setImageResource(android.R.drawable.ic_menu_gallery);gallery.setScaleType(ImageView.ScaleType.CENTER_CROP);gallery.setContentDescription("Open last capture");gallery.setOnClickListener(v->actions.gallery());gallery.setBackground(round(0xff222222,12));gallery.setClipToOutline(true);capture.addView(gallery,new LinearLayout.LayoutParams(dp(48),dp(48)));
+        Space left=new Space(activity);capture.addView(left,new LinearLayout.LayoutParams(0,1,1));shutter=new ShutterButton(activity);shutter.setContentDescription("Capture photo or toggle video recording");shutter.setOnClickListener(v->actions.capture());capture.addView(shutter,new LinearLayout.LayoutParams(dp(82),dp(82)));Space right=new Space(activity);capture.addView(right,new LinearLayout.LayoutParams(0,1,1));capture.addView(icon("flip","Switch front or rear camera",v->actions.flip()),new LinearLayout.LayoutParams(dp(48),dp(48)));dock.addView(capture);
+        root.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{boolean wide=r-l>b-t&&r-l>=dp(560);if(wide!=wideLayout)adaptLayout(wide);});
+        root.setOnApplyWindowInsetsListener((view,insets)->{if(android.os.Build.VERSION.SDK_INT>=30){Insets i=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());view.setPadding(i.left,i.top,i.right,i.bottom);}else view.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets;});
+    }
+    public void mode(boolean isVideo){timerControl.setVisibility(isVideo?View.GONE:View.VISIBLE);format.setVisibility(isVideo?View.VISIBLE:View.GONE);photo.setTextColor(isVideo?Color.WHITE:0xffffd54a);video.setTextColor(isVideo?0xffffd54a:Color.WHITE);}
+    public void videoFormat(int edge,int fps){format.setText((edge==2160?"4K":edge+"p")+"\n"+fps);}
+    public void proControlsVisible(boolean visible){for(View control:quickControls)control.setVisibility(visible?View.GONE:View.VISIBLE);}
+    public void proMode(boolean enabled){pro.setTextColor(enabled?0xffffd54a:Color.WHITE);if(enabled)photo.setTextColor(Color.WHITE);proReadout.setVisibility(enabled?View.VISIBLE:View.GONE);}
+    private void adaptLayout(boolean wide){wideLayout=wide;root.setOrientation(wide?LinearLayout.HORIZONTAL:LinearLayout.VERTICAL);top.setOrientation(wide?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);top.setLayoutParams(new LinearLayout.LayoutParams(wide?dp(56):-1,wide?-1:dp(48)));for(int i=0;i<top.getChildCount();i++)top.getChildAt(i).setLayoutParams(new LinearLayout.LayoutParams(wide?-1:0,wide?0:dp(48),1));viewfinder.setLayoutParams(new LinearLayout.LayoutParams(wide?0:-1,wide?-1:0,1));dock.setLayoutParams(new LinearLayout.LayoutParams(wide?dp(136):-1,wide?-1:-2));for(int i=0;i<modes.getChildCount();i++){Button mode=(Button)modes.getChildAt(i);mode.setLayoutParams(new LinearLayout.LayoutParams(dp(76),dp(48)));mode.setTextSize(wide?10:12);mode.setPadding(dp(wide?2:12),0,dp(wide?2:12),0);}capture.setOrientation(wide?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);capture.setLayoutParams(new LinearLayout.LayoutParams(-1,wide?0:-2,wide?1:0));capture.setPadding(dp(wide?8:18),dp(6),dp(wide?8:18),dp(wide?6:16));for(int i=0;i<capture.getChildCount();i++){View child=capture.getChildAt(i);LinearLayout.LayoutParams p;if(child instanceof Space)p=new LinearLayout.LayoutParams(wide?1:0,wide?0:1,1);else{int size=child==shutter?82:48;p=new LinearLayout.LayoutParams(dp(size),dp(size));p.gravity=Gravity.CENTER;}child.setLayoutParams(p);}}
+    private android.graphics.drawable.GradientDrawable round(int color,int radius){android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
+    private LinearLayout column(){LinearLayout l=new LinearLayout(activity);l.setOrientation(LinearLayout.VERTICAL);return l;}
+    private LinearLayout row(){LinearLayout l=new LinearLayout(activity);l.setOrientation(LinearLayout.HORIZONTAL);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
+    private LinearLayout.LayoutParams weight(int height){return new LinearLayout.LayoutParams(0,dp(height),1);}
+    private TextView caption(String value,int size){TextView t=new TextView(activity);t.setText(value);t.setTextColor(Color.WHITE);t.setTextSize(size);t.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));t.setGravity(Gravity.CENTER_VERTICAL);return t;}
+    private Button label(String text,View.OnClickListener listener){Button b=new Button(activity);b.setText(text);b.setTextSize(12);b.setTextColor(Color.WHITE);b.setTypeface(Typeface.create("sans-serif-medium",Typeface.NORMAL));b.setAllCaps(false);b.setBackgroundColor(Color.TRANSPARENT);b.setMinWidth(0);b.setMinimumWidth(0);b.setPadding(dp(12),0,dp(12),0);b.setOnClickListener(listener);return b;}
+    private Button icon(String name,String description,View.OnClickListener listener){Button b=new IconButton(activity,name);b.setContentDescription(description);b.setOnClickListener(listener);return b;}
+    private int dp(float value){return Math.round(value*activity.getResources().getDisplayMetrics().density);}
+    private static final class ShutterButton extends Button {
+        private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        ShutterButton(Context c){super(c);setBackground(null);setText("●");}
+        @Override protected void onDraw(Canvas canvas){float x=getWidth()/2f,y=getHeight()/2f,r=Math.min(x,y)-5;paint.setColor(Color.WHITE);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(4*getResources().getDisplayMetrics().density);canvas.drawCircle(x,y,r-3,paint);paint.setStyle(Paint.Style.FILL);boolean video=getText().toString().equals("REC"),stop=getText().toString().equals("STOP");paint.setColor(video||stop?0xffff3b30:Color.WHITE);if(stop)canvas.drawRoundRect(x-r*.45f,y-r*.45f,x+r*.45f,y+r*.45f,10,10,paint);else canvas.drawCircle(x,y,r-14,paint);}
+    }
+    private static final class IconButton extends Button {
+        private final String name;private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);
+        IconButton(Context c,String name){super(c);this.name=name;setBackground(null);setMinimumWidth(0);setMinWidth(0);}
+        @Override protected void onDraw(Canvas canvas){canvas.save();canvas.translate(getWidth()/2f,getHeight()/2f);float scale=getResources().getDisplayMetrics().density;canvas.scale(scale,scale);p.setColor(!isEnabled()?0xff555555:Boolean.TRUE.equals(getTag())?0xffffd54a:Color.WHITE);p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(1.8f);p.setStrokeCap(Paint.Cap.ROUND);
+            if(name.equals("flip")){canvas.drawArc(-11,-11,11,11,35,275,false,p);canvas.drawLine(11,0,11,-8,p);canvas.drawLine(11,-8,4,-6,p);}
+            else if(name.equals("timer")){canvas.drawCircle(0,1,9,p);canvas.drawLine(-3,-12,3,-12,p);canvas.drawLine(0,1,0,-4,p);canvas.drawLine(0,1,4,3,p);}
+            else if(name.equals("grid")){for(int i:new int[]{-4,4}){canvas.drawLine(i,-10,i,10,p);canvas.drawLine(-10,i,10,i,p);}}
+            else if(name.equals("filters")){canvas.drawCircle(-4,-4,6,p);canvas.drawCircle(4,-4,6,p);canvas.drawCircle(0,4,6,p);}
+            else if(name.equals("light")){Path path=new Path();path.moveTo(2,-12);path.lineTo(-8,2);path.lineTo(-1,2);path.lineTo(-3,12);path.lineTo(8,-2);path.lineTo(1,-2);path.close();canvas.drawPath(path,p);if(!Boolean.TRUE.equals(getTag()))canvas.drawLine(-11,-11,11,11,p);}
+            else if(name.equals("settings")){Path gear=new Path();for(int i=0;i<32;i++){double angle=i*Math.PI/16;float radius=i%4==0||i%4==3?12:9;float x=(float)Math.cos(angle)*radius,y=(float)Math.sin(angle)*radius;if(i==0)gear.moveTo(x,y);else gear.lineTo(x,y);}gear.close();canvas.drawPath(gear,p);canvas.drawCircle(0,0,4,p);}
+            else {canvas.drawCircle(0,0,5,p);for(int i=0;i<8;i++){canvas.save();canvas.rotate(i*45);canvas.drawLine(0,-8,0,-11,p);canvas.restore();}}canvas.restore();}
+    }
+    public static final class FilterButton extends Button {
+        private final Bitmap image;private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        public FilterButton(Context c,String name,Bitmap image){super(c);this.image=image;setText(name);setContentDescription("Select filter "+name);setBackground(null);setAllCaps(false);}
+        @Override protected void onDraw(Canvas canvas){float d=getResources().getDisplayMetrics().density,x=getWidth()/2f,y=29*d,r=22*d;Path clip=new Path();clip.addCircle(x,y,r,Path.Direction.CW);canvas.save();canvas.clipPath(clip);canvas.drawBitmap(image,null,new RectF(x-r,y-r,x+r,y+r),paint);canvas.restore();if(isSelected()){paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2*d);paint.setColor(0xffffd54a);canvas.drawCircle(x,y,r+3*d,paint);paint.setStyle(Paint.Style.FILL);}paint.setColor(isSelected()?0xffffd54a:Color.WHITE);paint.setTypeface(Typeface.create("sans-serif",Typeface.NORMAL));paint.setTextSize(10*d);paint.setTextAlign(Paint.Align.CENTER);String value=getText().toString();if(value.length()>13)value=value.substring(0,12)+"…";canvas.drawText(value,x,67*d,paint);}
+    }
+}
