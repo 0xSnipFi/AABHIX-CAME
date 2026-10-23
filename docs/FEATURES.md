@@ -13,7 +13,7 @@ This is the current development snapshot, not a completed combined stock/Blackma
 | Video | AVC SDR, supported formats/FPS, optional AAC microphone, timestamp repair | HEVC/10-bit/Log, long thermal/A-V tests, richer audio controls |
 | Monitoring | Grid, sampled RGB histogram, storage/battery, Pro readout | Zebra, peaking, false color, waveform, level/safe-area guides |
 | Looks | 36 original styles, intensity, CUBE/tiled PNG/native JSON, local library | GPU full-resolution photo LUT export, separate display/record LUT scopes |
-| Profiles | Native setup save/import, limited GCam/LMC subset, review and receipt | Per-lens diffs/rollback and richer application readback |
+| Profiles | Searchable setup library, batch XML import, saved look/strength, four native profiles, limited GCam/LMC subset, review and receipt | Per-lens diffs/rollback and richer application readback |
 | Watermark | Unicode text, photo/video scopes, position/size/opacity, live sample | Date/model/logo/font/layout templates |
 | Creative modes | Pro Video, bounded long exposure controls, Document Mono treatment | True document scan/PDF, panorama, time-lapse, slow motion, QR, live photo |
 | Media | Last-capture viewer handoff, original preservation, scoped export/recovery files | Media browser, visible recovery/retry, exhaustive storage-failure tests |

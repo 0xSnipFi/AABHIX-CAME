@@ -30,12 +30,18 @@ public final class CubeLut {
     }
     public void sampleInto(float r,float g,float b,float[] out){
         float xPos=clamp(r)*(size-1),yPos=clamp(g)*(size-1),zPos=clamp(b)*(size-1);
-        int xLo=(int)xPos,yLo=(int)yPos,zLo=(int)zPos;out[0]=out[1]=out[2]=0;
-        for(int dz=0;dz<2;dz++)for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++){
-            int x=Math.min(size-1,xLo+dx),y=Math.min(size-1,yLo+dy),z=Math.min(size-1,zLo+dz);
-            float w=(dx==0?1-xPos+xLo:xPos-xLo)*(dy==0?1-yPos+yLo:yPos-yLo)*(dz==0?1-zPos+zLo:zPos-zLo);
-            int at=3*(x+size*(y+size*z));for(int c=0;c<3;c++)out[c]+=data[at+c]*w;
-        }
+        int xLo=(int)xPos,yLo=(int)yPos,zLo=(int)zPos;
+        int xHi=Math.min(size-1,xLo+1),yHi=Math.min(size-1,yLo+1),zHi=Math.min(size-1,zLo+1);
+        float x0=1-xPos+xLo,x1=xPos-xLo,y0=1-yPos+yLo,y1=yPos-yLo,z0=1-zPos+zLo,z1=zPos-zLo;
+        // Compute each corner once, preserving the original accumulation order.
+        int ia=3*(xLo+size*(yLo+size*zLo)),ib=3*(xHi+size*(yLo+size*zLo));
+        int ic=3*(xLo+size*(yHi+size*zLo)),id=3*(xHi+size*(yHi+size*zLo));
+        int ie=3*(xLo+size*(yLo+size*zHi)),ifx=3*(xHi+size*(yLo+size*zHi));
+        int ig=3*(xLo+size*(yHi+size*zHi)),ih=3*(xHi+size*(yHi+size*zHi));
+        float wa=x0*y0*z0,wb=x1*y0*z0,wc=x0*y1*z0,wd=x1*y1*z0;
+        float we=x0*y0*z1,wf=x1*y0*z1,wg=x0*y1*z1,wh=x1*y1*z1;
+        for(int channel=0;channel<3;channel++)out[channel]=data[ia+channel]*wa+data[ib+channel]*wb+data[ic+channel]*wc+data[id+channel]*wd+data[ie+channel]*we+data[ifx+channel]*wf+data[ig+channel]*wg+data[ih+channel]*wh;
     }
+
     private static float clamp(float v){return Math.max(0,Math.min(1,v));}
 }

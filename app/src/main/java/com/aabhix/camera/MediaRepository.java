@@ -24,19 +24,18 @@ public final class MediaRepository {
         long started=android.os.SystemClock.elapsedRealtime(),stage=started;org.json.JSONObject timing=new org.json.JSONObject();timing.put("style",style.id);timing.put("photo_watermark",watermark.photo);timing.put("preserve_original",preserveOriginal);
         FrameOverlay frame=FrameOverlay.load(context.getSharedPreferences("settings",0),false);
         int orientation=new ExifInterface(new ByteArrayInputStream(jpeg)).getAttributeInt(ExifInterface.TAG_ORIENTATION,1);
-        byte[] clean=MediaMetadataPolicy.sanitizeJpeg(jpeg,orientation);
         BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;BitmapFactory.decodeByteArray(jpeg,0,jpeg.length,bounds);
         boolean swapped=orientation>=5&&orientation<=8;float nativeAspect=swapped?bounds.outHeight/(float)bounds.outWidth:bounds.outWidth/(float)bounds.outHeight;
         boolean crop=targetAspect>0&&Math.abs(nativeAspect-targetAspect)>.003f;
-        if((style.id.equals("original")||intensity==0)&&!crop&&!frame.active()&&!(watermark.photo&&!watermark.text.isEmpty()))return write(name(".jpg"),"image/jpeg",clean);
-        if(preserveOriginal)write(name("_original.jpg"),"image/jpeg",clean);
+        if((style.id.equals("original")||intensity==0)&&!crop&&!frame.active()&&!(watermark.photo&&!watermark.text.isEmpty()))return write(name(".jpg"),"image/jpeg",MediaMetadataPolicy.sanitizeJpeg(jpeg,orientation));
+        if(preserveOriginal)write(name("_original.jpg"),"image/jpeg",MediaMetadataPolicy.sanitizeJpeg(jpeg,orientation));
         timing.put("metadata_original_ms",android.os.SystemClock.elapsedRealtime()-stage);stage=android.os.SystemClock.elapsedRealtime();
         BitmapFactory.Options decode=new BitmapFactory.Options();decode.inMutable=true;decode.inPreferredColorSpace=ColorSpace.get(ColorSpace.Named.SRGB);
         Bitmap source=BitmapFactory.decodeByteArray(jpeg,0,jpeg.length,decode);
         if(source==null)throw new IOException("Unable to decode capture");
         timing.put("decode_ms",android.os.SystemClock.elapsedRealtime()-stage);stage=android.os.SystemClock.elapsedRealtime();
         try{
-            if(style.lut==null){Bitmap rendered=PhotoRasterizer.render(source,orientation,crop?targetAspect:0,style,intensity);source.recycle();source=rendered;}
+            if(style.lut==null){if(!(orientation==1&&!crop&&(style.id.equals("original")||intensity==0))){Bitmap rendered=PhotoRasterizer.render(source,orientation,crop?targetAspect:0,style,intensity);source.recycle();source=rendered;}}
             else {
             Matrix rotate=new Matrix();switch(orientation){case 2:rotate.setScale(-1,1);break;case 3:rotate.setRotate(180);break;case 4:rotate.setScale(1,-1);break;case 5:rotate.setRotate(90);rotate.postScale(-1,1);break;case 6:rotate.setRotate(90);break;case 7:rotate.setRotate(270);rotate.postScale(-1,1);break;case 8:rotate.setRotate(270);break;}
             Bitmap normalized=Bitmap.createBitmap(source,0,0,source.getWidth(),source.getHeight(),rotate,true);
@@ -51,10 +50,25 @@ public final class MediaRepository {
                 frame.draw(new Canvas(output),w,h);
                 if(watermark.photo)watermark.draw(new Canvas(output),w,h);
                 timing.put("overlay_ms",android.os.SystemClock.elapsedRealtime()-stage);stage=android.os.SystemClock.elapsedRealtime();
-                ByteArrayOutputStream bytes=new ByteArrayOutputStream();if(!output.compress(Bitmap.CompressFormat.JPEG,Math.max(70,Math.min(100,context.getSharedPreferences("settings",0).getInt("jpegQuality",96))),bytes))throw new IOException("JPEG export failed");
-                timing.put("encode_ms",android.os.SystemClock.elapsedRealtime()-stage);stage=android.os.SystemClock.elapsedRealtime();Uri saved=write(name("_"+style.id+".jpg"),"image/jpeg",MediaMetadataPolicy.sanitizeJpeg(bytes.toByteArray(),1));timing.put("publish_ms",android.os.SystemClock.elapsedRealtime()-stage);timing.put("export_total_ms",android.os.SystemClock.elapsedRealtime()-started);try(FileOutputStream report=context.openFileOutput("last-photo-timing.json",Context.MODE_PRIVATE)){report.write(timing.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}catch(IOException ignored){/* Diagnostics must not turn a saved photo into an export failure. */}return saved;
+                Uri saved=writeBitmap(name("_"+style.id+".jpg"),output,Math.max(70,Math.min(100,context.getSharedPreferences("settings",0).getInt("jpegQuality",96))));
+                timing.put("encode_publish_ms",android.os.SystemClock.elapsedRealtime()-stage);timing.put("export_total_ms",android.os.SystemClock.elapsedRealtime()-started);try(FileOutputStream report=context.openFileOutput("last-photo-timing.json",Context.MODE_PRIVATE)){report.write(timing.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}catch(IOException ignored){/* Diagnostics must not turn a saved photo into an export failure. */}return saved;
             }finally{if(output!=source)output.recycle();}
         }finally{source.recycle();}
+    }
+    /** Fresh bitmap encoding carries no camera EXIF; avoid full-size compressed byte copies. */
+    private Uri writeBitmap(String name,Bitmap bitmap,int quality)throws IOException {
+        ContentResolver resolver=context.getContentResolver();ContentValues values=new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME,name);values.put(MediaStore.MediaColumns.MIME_TYPE,"image/jpeg");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH,"Pictures/Aabhix");values.put(MediaStore.MediaColumns.IS_PENDING,1);
+        Uri uri=resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values);
+        if(uri==null)throw new IOException("MediaStore insertion failed");
+        try {
+            try(OutputStream output=resolver.openOutputStream(uri)) {
+                if(output==null||!bitmap.compress(Bitmap.CompressFormat.JPEG,quality,output))throw new IOException("JPEG export failed");
+            }
+            validate(uri,"image/jpeg");values.clear();values.put(MediaStore.MediaColumns.IS_PENDING,0);
+            if(resolver.update(uri,values,null,null)!=1)throw new IOException("Media publication failed");return uri;
+        }catch(Exception e){resolver.delete(uri,null,null);throw e instanceof IOException?(IOException)e:new IOException(e);}
     }
     public Uri saveVideo(File file) throws IOException {
         try(InputStream input=new FileInputStream(file)){return writeStream(name(".mp4"),"video/mp4",input);}

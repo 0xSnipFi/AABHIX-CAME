@@ -2,7 +2,7 @@
 
 <img src="app/src/main/res/drawable/aabhix_logo.png" alt="Aabhix Camera icon" width="160">
 
-An offline Android camera application built with Java, Camera2, OpenGL ES, MediaRecorder and scoped MediaStore. This repository contains the complete application and test source for the **0.10.0 development milestone**.
+An offline Android camera application built with Java, Camera2, OpenGL ES, MediaRecorder and scoped MediaStore. This repository contains the complete application and test source for the **0.11.0 development milestone**.
 
 **Status:** active development. Standard capture, manual controls, grading, imports and several repair flows are implemented. This is not a finished replacement for every stock, Blackmagic, GCam or LMC feature.
 
@@ -12,7 +12,7 @@ An offline Android camera application built with Java, Camera2, OpenGL ES, Media
 |---|---|
 | Application | Aabhix |
 | Package | `com.aabhix.camera` |
-| Current version | `0.10.0` / version code `10` |
+| Current version | `0.11.0` / version code `11` |
 | Minimum Android | Android 10 / API 29 |
 | Compile / target SDK | 36 / 35 |
 | Language / JDK | Java 17 |
@@ -34,6 +34,8 @@ An offline Android camera application built with Java, Camera2, OpenGL ES, Media
 - Scoped gallery export, original-photo preservation, JPEG metadata minimization, optional microphone recording and no network/location permission.
 
 ### Latest repairs
+
+0.11 adds a searchable configuration library, batch XML import (up to 100 files), four native starter profiles, and saved look/intensity/original-copy settings. Photo JPEGs stream directly into pending gallery rows; the LUT sampler computes each interpolation corner once. See [0.11 validation](docs/VALIDATION-0.11.md).
 
 0.10 aligns GPU video presentation timestamps with the recorder's monotonic timeline, filters nonterminal/stale recorder callbacks, prevents conflicting mode changes during camera reconfiguration, bounds thumbnail readback, and corrects watermark OFF/sample behavior.
 
